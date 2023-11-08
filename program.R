@@ -2,6 +2,8 @@
 rm(list = ls()); gc()
 
 ### ESG fund
+# Setting working directory ----
+setwd("~/ESG-fund-research")
 
 # Package loading ----
 library(readxl)
@@ -11,17 +13,17 @@ library(tidyr)
 library(lubridate)
 
 # Data Import ----
-# data_00850 <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/00850ESGFUND_20170101_20231012.xlsx')
-# data_TESG <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/TESG_20170101_20231012.xlsx')
-# data_fundBasic <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundBasic_20170101_20231012.xlsx')
-# data_fundNV <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundNV_20170101_20231012.xlsx')
-# data_fundHolding <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundHolding_20170101_20231231.xlsx')
+data_00850 <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/00850ESGFUND_20170101_20231012.xlsx')
+data_TESG <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/TESG_20170101_20231012.xlsx')
+data_fundBasic <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundBasic_20170101_20231012.xlsx')
+data_fundNV <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundNV_20170101_20231012.xlsx')
+data_fundHolding <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundHolding_20170101_20231231.xlsx')
 
-data_00850 <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/00850ESGFUND_20170101_20231012.xlsx')
-data_TESG <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/TESG_20170101_20231012.xlsx')
-data_fundBasic <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundBasic_20170101_20231012.xlsx')
-data_fundNV <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundNV_20170101_20231012.xlsx')
-data_fundHolding <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundHolding_20170101_20231231.xlsx')
+# data_00850 <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/00850ESGFUND_20170101_20231012.xlsx')
+# data_TESG <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/TESG_20170101_20231012.xlsx')
+# data_fundBasic <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundBasic_20170101_20231012.xlsx')
+# data_fundNV <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundNV_20170101_20231012.xlsx')
+# data_fundHolding <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundHolding_20170101_20231231.xlsx')
 
 ## Data brief ----
 length(unique(data_fundHolding$證券代碼)) # 842
@@ -145,17 +147,24 @@ code_ESGfund <- c('00932', 'T0496', '00850', 'T0848', '00692', '00920',
                   '00928', 'T3349', 'T3527', 'T3528', 'T3615', '00878',
                   'T3788', 'T3812', 'T3813', 'T4136', 'T4138', '00890B',
                   'T4142', 'T4767', 'T4769', 'T4819', 'T4820', 'T4822',
-                  'T4911', 'T5006',  )
+                  'T4911', 'T5006')
 
   
 # Data Export ----
+# df_Basic_ESG <- rename(df_Basic_ESG,  
+#                        'TNA' = '基金淨資產', 'FLOW' = '基金流量', 
+#                        'Return(t0)' = '近一個月變動率%', 'Return(t-1)' = '前一個月變動率%', 'Return(t-1,t-12)' = '前一年變動率%', 'Return(t-13,t-24)' = '前二年變動率%',
+#                        'ESG1' = '累積ESG1', 'ESG2' = '累積ESG2', 'ESG3' = '累積ESG3'
+#                        )
+# # df_Holding_TESG <- rename(df_Holding_TESG, 'w%' = '投資比率％', 'I' = '是否為00850成分股', 'Iw' = '00850持股比例', 'TESG' = '成分股TESG等級分數')
+
+# write_xlsx(df_Basic_ESG, '基金基本資料_20170101_20231231.xlsx')
+# write_xlsx(df_Holding_TESG, '基金持股資料_20170101_20231231.xlsx')
+
 ### FYI: 
 ### 1. 當期ESG1, ESG2因為00850上市較晚，所以2019/09以前為0
 ### 2. 有些基金在某月所有成分股沒有TESG分數，予以剔除
 ### 3. 有些基金在某月某些成分股沒有TESG分數，以0補值
 ### 4. 多數基金可能沒有持股資料，所以基金檔數 -> 基金基本資料 > 基金持股資料
-write_xlsx(df_Basic_ESG, '基金基本資料_20170101_20231231.xlsx')
-write_xlsx(df_Holding_TESG, '基金持股資料_20170101_20231231.xlsx')
-
 
 
