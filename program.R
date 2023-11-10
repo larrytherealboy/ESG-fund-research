@@ -12,8 +12,9 @@ library(writexl)
 library(dplyr)
 library(tidyr)
 library(lubridate)
+library(stargazer)
 
-# Data Import ----
+# Data Import ------------------------------------------------------------------
 data_00850 <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/00850ESGFUND_20170101_20231012.xlsx')
 data_TESG <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/TESG_20170101_20231012.xlsx')
 data_fundBasic <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/FundBasic_20170101_20231012.xlsx')
@@ -26,7 +27,7 @@ data_fundHolding <- read_xlsx('/Users/larry.chen.int/Fund_20170101_20231012/Fund
 # data_fundNV <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundNV_20170101_20231012.xlsx')
 # data_fundHolding <- read_xlsx('~/NSYSU/RA_Alin/Fund_20170101_20231012/FundHolding_20170101_20231231.xlsx')
 
-# Variables define ----
+# Variables define -------------------------------------------------------------
 code_ESGfund <- c('00932', 'T0496', '00850', 'T0848', '00692', '00920',
                   'T1284', 'T1282', 'T1511', '00923', 'T2069Y', 'T2117',
                   'T2132', 'T2133', 'T2135', 'T2137', 'T2578', '00888',
@@ -36,7 +37,7 @@ code_ESGfund <- c('00932', 'T0496', '00850', 'T0848', '00692', '00920',
                   'T4142', 'T4767', 'T4769', 'T4819', 'T4820', 'T4822',
                   'T4911', 'T5006')
 
-# Data brief ----
+# Data brief -------------------------------------------------------------------
 length(unique(data_fundHolding$證券代碼)) # 842
 length(unique(data_fundBasic$證券代碼)) # 4906
 length(unique(data_TESG$證券代碼)) # 2606
@@ -44,9 +45,14 @@ length(unique(data_TESG$證券代碼)) # 2606
 ### 1. 有些基金可能沒有持股資料
 
 
-# Data manipulating ----
+# Data manipulating ------------------------------------------------------------
+## *Naming rules* --------
+#* TNA = 基金淨資產; Expense ratio = 成本費用率; AGE = 基金年紀; FLOW = 基金流量
+#* w% = 投資比率％; I = 是否為00850成分股; Iw = 00850持股比例; TESG = 根據TESG等級計算的TESG分數
+#* Return(t0) = 月報酬; Return(t0,t-11) = 年報酬; Return(t0,t-23) = 二年報酬
+#* Return(t-1) = 前一月報酬; Return(t-1,t-12) = 截至前一月年報酬; Return(t-13,t-24) = 前年報酬
 
-## Fund basic ----
+## Fund basic --------
 df_fundBasic <- data_fundBasic %>% 
   separate(`證券代碼`, into = c('證券代碼', '證券名稱'), sep = ' ') %>% 
   rename(`TNA` = `基金淨資產`,
@@ -54,13 +60,13 @@ df_fundBasic <- data_fundBasic %>%
   mutate(`AGE` = ceiling(time_length(interval(ymd(`成立日`),  ym(`年月`)), "years"))) %>% 
   select(-`基金全稱`, -`主基金代碼`, -`淨值`)
 
-## Fund 00850 ----
+## Fund 00850 --------
 df_00850 <- mutate(data_00850, `I` = 1) %>% 
   rename(`Iw` = `持股數/流通在外股數%`)
 
 df_00850_components <- select(df_00850, c(`年月`, `標的碼`, `標的名稱`, `I`, `Iw`))
 
-## TESG ----
+## TESG --------
 df_TESG <- data_TESG %>% 
   separate(`證券代碼`, into = c('證券代碼', '證券名稱'), sep = ' ') %>% 
   mutate(`年月` = as.numeric(`年月`),
@@ -80,7 +86,7 @@ df_TESG_score <- select(df_TESG, c(`證券代碼`, `證券名稱`, `年月`, `TE
          `標的名稱` = `證券名稱`) %>% 
   mutate(`年月` = ifelse(`年月` == 201712, 201801, `年月`))
 
-## Fund Holding ----
+## Fund Holding --------
 df_fundHolding <- data_fundHolding %>% 
   separate(`證券代碼`, into = c('證券代碼', '證券名稱'), sep = ' ') %>% 
   rename(`w%` = `投資比率％`) %>% 
@@ -91,7 +97,7 @@ df_fundHolding <- data_fundHolding %>%
   mutate(`I` = ifelse(is.na(`I`), 0, `I`),
          `Iw` = ifelse(is.na(`Iw`), 0, `Iw`),)
 
-## Fund NV ----
+## Fund NV --------
 df_fundNV <- data_fundNV %>% 
   separate(`證券代碼`, into = c('證券代碼', '證券名稱'), sep = ' ') %>% 
   rename(`Return(t0)` = `近一個月變動率%`,
@@ -108,13 +114,11 @@ df_fundNV <- data_fundNV %>%
          `Return(t-1,t-12)` = lag(`Return(t0,t-11)`),
          `Return(t-13,t-24)` = lag(`Return(t0,t-23)`) - `Return(t-1,t-12)`)
   
-
 df_fundNV_return <- select(df_fundNV, c(`證券代碼`, `證券名稱`, `年月`, `Return(t0)`, `Return(t-1)`, `Return(t-1,t-12)`, `Return(t-13,t-24)`))  
 
+# Combine data frame -----------------------------------------------------------
 
-# Combine data frame ----
-
-## Calculate FLOW ----
+## Calculate FLOW --------
 df_Basic_NV <- df_fundBasic %>% 
   left_join(df_fundNV_return) %>% 
   group_by(`證券代碼`) %>% 
@@ -122,7 +126,11 @@ df_Basic_NV <- df_fundBasic %>%
   mutate(`FLOW` = `TNA`/( lag(`TNA`)*(1+`Return(t0)`) ) - 1,
          `FLOW` = round(`FLOW`, 6))
 
-## Put 0 in TESG score NA value ----
+## Put 0 in TESG score NA value --------
+#* FYI: 
+#* 1. 271281筆資料，該基金在該月所有成分股沒有TESG分數，予以剔除
+#*    -> 總共除去315檔基金，保留430287筆
+#* 2. 430287筆資料中，132552筆沒有TESG分數，補0
 df_Holding_TESG <- df_fundHolding %>% 
   left_join(df_TESG_score) %>% 
   group_by(`標的碼`) %>%
@@ -133,12 +141,10 @@ df_Holding_TESG <- df_fundHolding %>%
   filter(!sum(is.na(`TESG`)) == n()) %>% 
   mutate(`TESG` = ifelse(is.na(`TESG`), 0, `TESG`)) %>% 
   group_by()
-### FYI: 
-### 1. 271281筆資料，該基金在該月所有成分股沒有TESG分數，予以剔除
-###    -> 總共除去315檔基金，保留430287筆
-### 2. 430287筆資料中，132552筆沒有TESG分數，補0
 
-## Calculate ESG score ----
+## Calculate ESG score --------
+#* FYI: 
+#* 1. 當期ESG1, ESG2因為00850上市較晚，所以2019/09以前為0
 df_ESG_score <- df_Holding_TESG %>% 
   group_by(`證券代碼`, `證券名稱`, `年月`) %>% 
   arrange(`證券代碼`, `證券名稱`, `年月`) %>% 
@@ -152,33 +158,32 @@ df_ESG_score <- df_Holding_TESG %>%
   mutate(`HIGH_ESG1` = ifelse(`ESG1` >= median(`ESG1`, na.rm = TRUE), 1, 0), 
          `HIGH_ESG2` = ifelse(`ESG2` >= median(`ESG2`, na.rm = TRUE), 1, 0), 
          `HIGH_ESG3` = ifelse(`ESG3` >= median(`ESG3`, na.rm = TRUE), 1, 0))
-### FYI: 
-### 1. 當期ESG1, ESG2因為00850上市較晚，所以2019/09以前為0
 
-## Combine Basic & ESG score data
+## Combine Basic & ESG score data --------
 df_Basic_ESG <- df_Basic_NV %>% 
   left_join(df_ESG_score) %>% 
   group_by()
 
+# Description Statistic --------------------------------------------------------
+df_descriptionStat <- select(df_Basic_ESG, c(`HIGH_ESG1`, `HIGH_ESG2`, `HIGH_ESG3`, `ESG1`, `ESG2`, `ESG3`,
+                                             `FLOW`, `TNA`, `AGE`, `Expense ratio`,
+                                             `Return(t0)`, `Return(t-1)`, `Return(t-1,t-12)`, `Return(t-13,t-24)`)) %>% 
+  na.omit()
 
-# Description Statistic ----
 descriptionStat_HIGH_ESG <- tapply(select(df_Basic_ESG, c(`ESG1`, `ESG2`, `ESG3`,
                                                           `FLOW`, `TNA`, `AGE`, `Expense ratio`,
                                                           `Return(t0)`, `Return(t-1)`, `Return(t-1,t-12)`, `Return(t-13,t-24)`)), 
                                    df_Basic_ESG$HIGH_ESG1, 
                                    summary)
 
-
-
-  
-# Data Export ----
+# Data Export --------
 # write_xlsx(df_Basic_ESG, '基金基本資料_20170101_20231231.xlsx')
 # write_xlsx(df_Holding_TESG, '基金持股資料_20170101_20231231.xlsx')
 
-### FYI: 
-### 1. 當期ESG1, ESG2因為00850上市較晚，所以2019/09以前為0
-### 2. 有些基金在某月所有成分股沒有TESG分數，予以剔除
-### 3. 有些基金在某月某些成分股沒有TESG分數，以0補值
-### 4. 多數基金可能沒有持股資料，所以基金檔數 -> 基金基本資料 > 基金持股資料
+#* FYI: 
+#* 1. 當期ESG1, ESG2因為00850上市較晚，所以2019/09以前為0
+#* 2. 有些基金在某月所有成分股沒有TESG分數，予以剔除
+#* 3. 有些基金在某月某些成分股沒有TESG分數，以0補值
+#* 4. 多數基金可能沒有持股資料，所以基金檔數 -> 基金基本資料 > 基金持股資料
 
 
